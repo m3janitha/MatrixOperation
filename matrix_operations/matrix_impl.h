@@ -324,7 +324,7 @@ namespace matrix
 
     /* Compute chunks for each worker thread. This is done only once per this type */
     template <typename T, std::size_t Rows, std::size_t Columns>
-    MatrixImpl<T, Rows, Columns>::Chunks MatrixImpl<T, Rows, Columns>::compute_parallel_chunks(const std::size_t array_length, const std::size_t number_of_threads)
+    typename MatrixImpl<T, Rows, Columns>::Chunks MatrixImpl<T, Rows, Columns>::compute_parallel_chunks(const std::size_t array_length, const std::size_t number_of_threads)
     {
         std::size_t number_of_chunks = number_of_threads;
         std::size_t chunk_size = array_length / number_of_chunks;

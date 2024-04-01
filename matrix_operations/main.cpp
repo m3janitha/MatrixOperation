@@ -17,7 +17,7 @@ int main()
     std::cout << "matrix 1" << std::endl
               << m1 << std::endl;
 
-    constexpr Matrix m2 = m1;
+    constexpr auto m2 = m1;
     constexpr Matrix<3, 4> mx{{{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 1, 2, 3}}}};
     std::cout << "matrix x" << std::endl
               << mx << std::endl;
@@ -59,14 +59,9 @@ int main()
     std::cout << "m1 + m2 + m3 tn" << std::endl
               << m1.addition_tn(m2).addition_tn(m3) << std::endl;
 
-    std::array<std::array<double, 3>, 3> x1{{{1, 2, 3}, {2, 1, 3}, {3, 2, 1}}};
-    Matrix mx1(x1);
-
-    std::array<std::array<double, 3>, 3> x2{{{1, 1, 3}, {2, 1, 1}, {1, 2, 1}}};
-    Matrix mx2(x2);
-
-    std::array<std::array<double, 3>, 3> x3{{{3, 1, 3}, {2, 3, 1}, {1, 2, 3}}};
-    Matrix mx3(x3);
+    Matrix<3,3> mx1{{{{1, 2, 3}, {2, 1, 3}, {3, 2, 1}}}};
+    Matrix<3,3> mx2{{{{1, 1, 3}, {2, 1, 1}, {1, 2, 1}}}};
+    Matrix<3,3> mx3{{{{3, 1, 3}, {2, 3, 1}, {1, 2, 3}}}};
 
     auto xxx = ab_c_generic(mx1, mx2, mx3);
     std::cout << "ab_c_generic" << std::endl
