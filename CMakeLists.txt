@@ -44,3 +44,4 @@ enable_testing()
 
 add_subdirectory(matrix_operations)
 add_subdirectory(benchmark)
+add_subdirectory(test)

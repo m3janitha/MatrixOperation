@@ -4,12 +4,18 @@
 
 namespace matrix
 {
+    /* Reusing Matrix class operators */
     template <typename T, std::size_t Rows, std::size_t Columns, std::size_t OtherColumns>
     inline /*constexpr*/ MatrixImpl<T, Rows, OtherColumns> ab_c_generic(MatrixImpl<T, Rows, Columns> &a, MatrixImpl<T, Rows, OtherColumns> &b, MatrixImpl<T, Rows, OtherColumns> &c)
     {
         return a * b + c;
     }
 
+    /* A . B  + C = R */
+    /* Read single value from Matrix A at once and cache it (in register) */
+    /* For rows in A, For Columns in A, for Columns in B */
+    /* B and R are traversed by rows to improve cache coherence */
+    /* Compute A . B and add C after each row is completed */
     template <typename T, std::size_t Rows, std::size_t Columns, std::size_t OtherColumns>
     constexpr void ab_c_optimised_aux(MatrixImpl<T, Rows, OtherColumns> &result, MatrixImpl<T, Rows, Columns> &a, MatrixImpl<T, Rows, OtherColumns> &b, MatrixImpl<T, Rows, OtherColumns> &c, std::size_t start, std::size_t end)
     {
@@ -33,6 +39,7 @@ namespace matrix
         }
     }
 
+    /* single threaded (t1) implementation */
     template <typename T, std::size_t Rows, std::size_t Columns, std::size_t OtherColumns>
     inline constexpr MatrixImpl<T, Rows, OtherColumns> ab_c_optimised(MatrixImpl<T, Rows, Columns> &a, MatrixImpl<T, Rows, OtherColumns> &b, MatrixImpl<T, Rows, OtherColumns> &c)
     {
@@ -41,6 +48,7 @@ namespace matrix
         return result;
     }
 
+    /* multi threaded (tn) implementation */
     template <typename T, std::size_t Rows, std::size_t Columns, std::size_t OtherColumns>
     inline /*constexpr*/ MatrixImpl<T, Rows, OtherColumns> ab_c_optimised_tn(MatrixImpl<T, Rows, Columns> &a, MatrixImpl<T, Rows, OtherColumns> &b, MatrixImpl<T, Rows, OtherColumns> &c)
     {

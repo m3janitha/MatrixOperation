@@ -79,6 +79,7 @@ namespace matrix
         constexpr void addition_tn_aux(MatrixImpl &result, const MatrixImpl& other, std::size_t start, std::size_t end) const noexcept;
         constexpr void addition_tn_aux(const MatrixImpl& other, std::size_t start, std::size_t end) noexcept;
 
+        auto operator<=>(const MatrixImpl&) const = default;
     private:
         std::array<std::array<T, Columns>, Rows> data_{};
     };

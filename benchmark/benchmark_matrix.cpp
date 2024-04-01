@@ -1,6 +1,6 @@
 #include <benchmark/benchmark.h>
-#include <matrix.h>
-#include <solution.h>
+#include <matrix_operations/matrix.h>
+#include <matrix_operations/solution.h>
 #include <random>
 #include <ctime>
 #include <iostream>

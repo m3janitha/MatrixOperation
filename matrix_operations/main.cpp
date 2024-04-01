@@ -7,15 +7,18 @@ using namespace matrix;
 
 int main()
 {
-    constexpr std::array<std::array<double, 3>, 2> a1{{{1, 2, 3}, {4, 5, 6}}};
-    constexpr Matrix<2, 3> m1(a1);
+    constexpr Matrix<1, 3> aa1{{{{1, 2, 3}}}};
+    constexpr Matrix<3, 1> aa2{{{{1}, {2}, {3}}}};
+    auto aa3 = aa1*aa2;
+    std::cout << "aa3 = aa1*aa2" << std::endl
+              << aa3 << std::endl;
+
+    constexpr Matrix<2, 3> m1{{{{1, 2, 3}, {4, 5, 6}}}};
     std::cout << "matrix 1" << std::endl
               << m1 << std::endl;
 
     constexpr Matrix m2 = m1;
-
-    constexpr std::array<std::array<double, 4>, 3> ax{{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 1, 2, 3}}};
-    constexpr Matrix<3, 4> mx(ax);
+    constexpr Matrix<3, 4> mx{{{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 1, 2, 3}}}};
     std::cout << "matrix x" << std::endl
               << mx << std::endl;
 
@@ -74,6 +77,17 @@ int main()
 
     std::cout << "ab_c_optimised_tn" << std::endl
               << ab_c_optimised_tn(mx1, mx2, mx3) << std::endl;
+
+    if( m1 == m2){
+        std::cout << "m1 == m2" << std::endl;
+    }
+
+    if( mx1 == mx2){
+        std::cout << "mx1 == mx2" << std::endl;
+    }
+    else{
+        std::cout << "mx1 != mx2" << std::endl;
+    }
 
     // std::cout << "mx1 - mx2" << std::endl
     //           << mx1 - mx2 << std::endl;

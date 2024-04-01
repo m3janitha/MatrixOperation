@@ -1,4 +1,5 @@
-include_directories(${PROJECT_SOURCE_DIR}/matrix_operations)
+include_directories(${PROJECT_SOURCE_DIR})
+message("PROJECT_SOURCE_DIR ${PROJECT_SOURCE_DIR}")
 
 set(BENCHMARK_ENABLE_TESTING OFF)
 
