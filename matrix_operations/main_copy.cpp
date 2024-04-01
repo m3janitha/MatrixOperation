@@ -1,4 +1,4 @@
-#include "matrix.h"
+#include "matrix_copy.h"
 #include <iostream>
 #include <vector>
 
@@ -39,7 +39,7 @@ int main()
     std::cout << "matrix x" << std::endl
               << mx << std::endl;
 
-    constexpr auto mxx = m1 * mx;
+    /*constexpr*/ auto mxx = m1 * mx;
     std::cout << "matrix xx" << std::endl
               << mxx << std::endl;
 
@@ -50,15 +50,11 @@ int main()
     std::cout << "scalar m1 * 2 * 3" << std::endl
               << m1 * 2 * 3 << std::endl;
 
-    constexpr MatrixT1 mt1{m1.data()};
-    constexpr MatrixT1 mtx{mx.data()};
-    constexpr auto mxx2 = mt1 * mtx;
+    constexpr auto mxx2 = m1.multiplication_t1(mx);
     std::cout << "multiplication t1 xx" << std::endl
               << mxx2 << std::endl;
 
-    constexpr MatrixTN mtn{m1.data()};
-    constexpr MatrixTN mtnx{mx.data()};
-    auto mtnxx2 = mtn * mtnx;
+    auto mtnxx2 = m1.multiplication_tn(mx);
     std::cout << "multiplication tn xx" << std::endl
               << mtnxx2 << std::endl;
 
@@ -71,25 +67,38 @@ int main()
     std::cout << "m3 - m1" << std::endl
               << m4 << std::endl;
 
+    std::cout << "m1 + m2 + m3" << std::endl
+              << (m1 + m2) + m3 << std::endl;
+
+    std::cout << "m1 + m2 tn" << std::endl
+              << m1.addition_tn(m2) << std::endl;
+
+    std::cout << "m1 + m2 + m3 tn" << std::endl
+              << m1.addition_tn(m2).addition_tn(m3) << std::endl;
+
     std::array<std::array<double, 3>, 3> x1{{{1, 2, 3}, {2, 1, 3}, {3, 2, 1}}};
-    MatrixT1 mx1(x1);
+    Matrix mx1(x1);
 
     std::array<std::array<double, 3>, 3> x2{{{1, 1, 3}, {2, 1, 1}, {1, 2, 1}}};
-    MatrixT1 mx2(x2);
+    Matrix mx2(x2);
 
     std::array<std::array<double, 3>, 3> x3{{{3, 1, 3}, {2, 3, 1}, {1, 2, 3}}};
-    MatrixT1 mx3(x3);
+    Matrix mx3(x3);
 
-    std::cout << "mx1 - mx2" << std::endl
-              << mx1 - mx2 << std::endl;
-
-    auto xxx = mx1 * mx2 + mx3;
-    std::cout << "mx1 * mx2 + mx3" << std::endl
+    auto xxx = ab_c(mx1, mx2, mx3);
+    std::cout << "a.b + c first" << std::endl
               << xxx << std::endl;
 
-    auto yyy = ab_c(mx1, mx2, mx3);
-    std::cout << "mx1 * mx2 + mx3 abc" << std::endl
-        << yyy << std::endl;
+    // std::cout << "mx1 - mx2" << std::endl
+    //           << mx1 - mx2 << std::endl;
+
+    // auto xxx = mx1 * mx2 + mx3;
+    // std::cout << "mx1 * mx2 + mx3" << std::endl
+    //           << xxx << std::endl;
+
+    // auto yyy = ab_c(mx1, mx2, mx3);
+    // std::cout << "mx1 * mx2 + mx3 abc" << std::endl
+    //     << yyy << std::endl;
 
     return 0;
 }

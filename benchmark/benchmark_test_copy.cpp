@@ -16,7 +16,7 @@ void fill_matrix(M &m)
     {
         for (std::size_t c = 0; c < m.columns(); c++)
         {
-            m.data_[r][c] = dist(rng);
+            m.data()[r][c] = dist(rng);
         }
     }
 }
@@ -42,6 +42,18 @@ public:
     MatrixType m3{};
 };
 
+using namespace matrix;
+
+using MatrixFixture8 = MatrixFixture<Matrix<8, 8>>;
+using MatrixFixture16 = MatrixFixture<Matrix<16, 16>>;
+using MatrixFixture32 = MatrixFixture<Matrix<32, 32>>;
+using MatrixFixture64 = MatrixFixture<Matrix<64, 64>>;
+using MatrixFixture128 = MatrixFixture<Matrix<128, 128>>;
+using MatrixFixture256 = MatrixFixture<Matrix<256, 256>>;
+using MatrixFixture512 = MatrixFixture<Matrix<512, 512>>;
+using MatrixFixture1024 =  MatrixFixture<Matrix<1024,1024>>;
+using MatrixFixture2048 =  MatrixFixture<Matrix<2048,2048>>;
+
 /* To avoid code duplication */
 #define BenchmarkTemplateMatrix(ClassName, FunctionName) \
     BENCHMARK_F(ClassName, BM_##FunctionName)            \
@@ -58,7 +70,13 @@ public:
     BenchmarkTemplateMatrix(ClassName##128, FunctionName);     \
     BenchmarkTemplateMatrix(ClassName##256, FunctionName);     \
     BenchmarkTemplateMatrix(ClassName##512, FunctionName);
-/*BenchmarkTemplateMatrix(##ClassName1024, FunctionName);*/
+
+
+#define BenchmarkTemplateMatrixForAll_BIG(ClassName, FunctionName) \
+    BenchmarkTemplateMatrixForAll(ClassName, FunctionName)  \
+    BenchmarkTemplateMatrix(ClassName##1024, FunctionName); \
+    BenchmarkTemplateMatrix(ClassName##2048, FunctionName); 
+
 
 /* benchmark matrix multiplication */
 
@@ -67,121 +85,61 @@ static void matrix_multiplication_naive(Fixture &fixture, benchmark::State &stat
 {
     for (auto _ : state)
     {
-        auto m = fixture.m1 * fixture.m2;
+        auto m = fixture.m1.multiplication_naive(fixture.m2);
         benchmark::DoNotOptimize(m);
     }
 }
-
-using namespace matrix;
-
-using MatrixFixture8 = MatrixFixture<Matrix<8, 8>>;
-using MatrixFixture16 = MatrixFixture<Matrix<16, 16>>;
-using MatrixFixture32 = MatrixFixture<Matrix<32, 32>>;
-using MatrixFixture64 = MatrixFixture<Matrix<64, 64>>;
-using MatrixFixture128 = MatrixFixture<Matrix<128, 128>>;
-using MatrixFixture256 = MatrixFixture<Matrix<256, 256>>;
-using MatrixFixture512 = MatrixFixture<Matrix<512, 512>>;
-// using Fixture1024 =  MatrixFixture<Matrix<1024,1024>>;
 
 BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_naive);
 
 template <typename Fixture>
-static void matrix_multi_optimized_t_1(Fixture & fixture, benchmark::State & state)
+static void matrix_multiplication_t1(Fixture &fixture, benchmark::State &state)
 {
     for (auto _ : state)
     {
-        auto m = fixture.m1 * fixture.m2;
+        auto m = fixture.m1.multiplication_t1(fixture.m2);
         benchmark::DoNotOptimize(m);
     }
 }
 
-using MatrixFixtureT8 = MatrixFixture<MatrixT1<8, 8>>;
-using MatrixFixtureT16 = MatrixFixture<MatrixT1<16, 16>>;
-using MatrixFixtureT32 = MatrixFixture<MatrixT1<32, 32>>;
-using MatrixFixtureT64 = MatrixFixture<MatrixT1<64, 64>>;
-using MatrixFixtureT128 = MatrixFixture<MatrixT1<128, 128>>;
-using MatrixFixtureT256 = MatrixFixture<MatrixT1<256, 256>>;
-using MatrixFixtureT512 = MatrixFixture<MatrixT1<512, 512>>;
-
-BenchmarkTemplateMatrixForAll(MatrixFixtureT, matrix_multi_optimized_t_1);
-
+BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_t1);
 
 template <typename Fixture>
-static void matrix_multi_optimized_t_n(Fixture &fixture, benchmark::State &state)
+static void matrix_multiplication_tn(Fixture &fixture, benchmark::State &state)
 {
     for (auto _ : state)
     {
-        auto m = fixture.m1 * fixture.m2;
+        auto m = fixture.m1.multiplication_tn(fixture.m2);
         benchmark::DoNotOptimize(m);
     }
 }
 
-using MatrixFixtureN8 = MatrixFixture<MatrixTN<8, 8>>;
-using MatrixFixtureN16 = MatrixFixture<MatrixTN<16, 16>>;
-using MatrixFixtureN32 = MatrixFixture<MatrixTN<32, 32>>;
-using MatrixFixtureN64 = MatrixFixture<MatrixTN<64, 64>>;
-using MatrixFixtureN128 = MatrixFixture<MatrixTN<128, 128>>;
-using MatrixFixtureN256 = MatrixFixture<MatrixTN<256, 256>>;
-using MatrixFixtureN512 = MatrixFixture<MatrixTN<512, 512>>;
-
-BenchmarkTemplateMatrixForAll(MatrixFixtureN, matrix_multi_optimized_t_n)
+BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_tn);
 
 template <typename Fixture>
-static void matrix_abc(Fixture &fixture, benchmark::State &state)
+static void matrix_addition(Fixture &fixture, benchmark::State &state)
 {
     for (auto _ : state)
     {
-        auto m = fixture.m1 * fixture.m2 + fixture.m3;
+        auto m = fixture.m1.addition(fixture.m2);
         benchmark::DoNotOptimize(m);
     }
 }
 
-using MatrixFixtureABC8 = MatrixFixture<MatrixT1<8, 8>>;
-using MatrixFixtureABC16 = MatrixFixture<MatrixT1<16, 16>>;
-using MatrixFixtureABC32 = MatrixFixture<MatrixT1<32, 32>>;
-using MatrixFixtureABC64 = MatrixFixture<MatrixT1<64, 64>>;
-using MatrixFixtureABC128 = MatrixFixture<MatrixT1<128, 128>>;
-using MatrixFixtureABC256 = MatrixFixture<MatrixT1<256, 256>>;
-using MatrixFixtureABC512 = MatrixFixture<MatrixT1<512, 512>>;
-
-BenchmarkTemplateMatrixForAll(MatrixFixtureABC, matrix_abc)
+BenchmarkTemplateMatrixForAll_BIG(MatrixFixture, matrix_addition);
 
 template <typename Fixture>
-static void matrix_abc_f(Fixture &fixture, benchmark::State &state)
+static void matrix_addition_tn(Fixture &fixture, benchmark::State &state)
 {
     for (auto _ : state)
     {
-        auto m = ab_c(fixture.m1, fixture.m2, fixture.m3);
+        auto m = fixture.m1.addition_tn(fixture.m2);
         benchmark::DoNotOptimize(m);
     }
 }
 
-using MatrixFixtureABCF8 = MatrixFixture<MatrixT1<8, 8>>;
-using MatrixFixtureABCF16 = MatrixFixture<MatrixT1<16, 16>>;
-using MatrixFixtureABCF32 = MatrixFixture<MatrixT1<32, 32>>;
-using MatrixFixtureABCF64 = MatrixFixture<MatrixT1<64, 64>>;
-using MatrixFixtureABCF128 = MatrixFixture<MatrixT1<128, 128>>;
-using MatrixFixtureABCF256 = MatrixFixture<MatrixT1<256, 256>>;
-using MatrixFixtureABCF512 = MatrixFixture<MatrixT1<512, 512>>;
+BenchmarkTemplateMatrixForAll_BIG(MatrixFixture, matrix_addition_tn);
 
-BenchmarkTemplateMatrixForAll(MatrixFixtureABCF, matrix_abc_f)
-
-// /* benchmark matrix addition */
-
-// template <typename Fixture>
-// static void matrix_addition(Fixture &fixture, benchmark::State &state)
-// {
-//     for (auto _ : state)
-//     {
-//         auto m = fixture.m1 + fixture.m2;
-//         benchmark::DoNotOptimize(m);
-//     }
-// }
-
-// BenchmarkTemplateMatrix(MatrixFixture8, matrix_addition);
-// BenchmarkTemplateMatrix(MatrixFixture16, matrix_addition);
-// BenchmarkTemplateMatrix(MatrixFixture32, matrix_addition);
-// BenchmarkTemplateMatrix(MatrixFixture64, matrix_addition);
 
 // /* benchmark matrix subtraction */
 

@@ -10,7 +10,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # lots of warnings and all warnings as errors
 message("setting CMAKE_CXX_FLAGS")
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
     
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     message("setting MSVC CMAKE_CXX_FLAGS")

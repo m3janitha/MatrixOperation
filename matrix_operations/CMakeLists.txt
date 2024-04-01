@@ -1,6 +1,6 @@
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-add_executable (matrix_operations main.cpp)
+add_executable (matrix_operations main_copy.cpp)
 
 if(MSVC)
   target_compile_options(matrix_operations PRIVATE /W4 /WX)
