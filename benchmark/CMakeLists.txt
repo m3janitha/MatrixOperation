@@ -22,7 +22,7 @@ else()
     message("setting ${CMAKE_CXX_COMPILER_ID} CMAKE_CXX_FLAGS")
 endif()
 
-add_executable(benchmark_test benchmark_test_copy.cpp)
+add_executable(benchmark_test benchmark_matrix.cpp)
 target_link_libraries(benchmark_test benchmark::benchmark)
 target_link_libraries(benchmark_test GTest::gtest GTest::gtest_main)
 

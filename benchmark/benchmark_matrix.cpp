@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
-#include <matrix_copy.h>
+#include <matrix.h>
+#include <solution.h>
 #include <random>
 #include <ctime>
 #include <iostream>
@@ -126,7 +127,7 @@ static void matrix_addition(Fixture &fixture, benchmark::State &state)
     }
 }
 
-BenchmarkTemplateMatrixForAll_BIG(MatrixFixture, matrix_addition);
+BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_addition);
 
 template <typename Fixture>
 static void matrix_addition_tn(Fixture &fixture, benchmark::State &state)
@@ -138,41 +139,43 @@ static void matrix_addition_tn(Fixture &fixture, benchmark::State &state)
     }
 }
 
-BenchmarkTemplateMatrixForAll_BIG(MatrixFixture, matrix_addition_tn);
+BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_addition_tn);
 
+template <typename Fixture>
+static void BM_ab_c_generic(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = ab_c_generic(fixture.m1, fixture.m2, fixture.m3);
+        benchmark::DoNotOptimize(m);
+    }
+}
 
-// /* benchmark matrix subtraction */
+BenchmarkTemplateMatrixForAll(MatrixFixture, BM_ab_c_generic);
 
-// template <typename Fixture>
-// static void matrix_subtraction(Fixture &fixture, benchmark::State &state)
-// {
-//     for (auto _ : state)
-//     {
-//         auto m = fixture.m1 - fixture.m2;
-//         benchmark::DoNotOptimize(m);
-//     }
-// }
+template <typename Fixture>
+static void BM_ab_c_optimised(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = ab_c_optimised(fixture.m1, fixture.m2, fixture.m3);
+        benchmark::DoNotOptimize(m);
+    }
+}
 
-// BenchmarkTemplateMatrix(MatrixFixture8, matrix_subtraction);
-// BenchmarkTemplateMatrix(MatrixFixture16, matrix_subtraction);
-// BenchmarkTemplateMatrix(MatrixFixture32, matrix_subtraction);
-// BenchmarkTemplateMatrix(MatrixFixture64, matrix_subtraction);
+BenchmarkTemplateMatrixForAll(MatrixFixture, BM_ab_c_optimised);
 
-// /* benchmark matrix operations */
+template <typename Fixture>
+static void BM_ab_c_optimised_tn(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = ab_c_optimised_tn(fixture.m1, fixture.m2, fixture.m3);
+        benchmark::DoNotOptimize(m);
+    }
+}
 
-// template <typename Fixture>
-// static void matrix_operations(Fixture &fixture, benchmark::State &state)
-// {
-//     for (auto _ : state)
-//     {
-//         auto m = fixture.m1 * fixture.m2 + fixture.m3;
-//         benchmark::DoNotOptimize(m);
-//     }
-// }
+BenchmarkTemplateMatrixForAll(MatrixFixture, BM_ab_c_optimised_tn);
 
-// BenchmarkTemplateMatrix(MatrixFixture8, matrix_operations);
-// BenchmarkTemplateMatrix(MatrixFixture16, matrix_operations);
-// BenchmarkTemplateMatrix(MatrixFixture32, matrix_operations);
-// BenchmarkTemplateMatrix(MatrixFixture64, matrix_operations);
 
 BENCHMARK_MAIN();
