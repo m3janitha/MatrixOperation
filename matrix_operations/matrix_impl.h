@@ -57,7 +57,7 @@ namespace matrix
 
         /* Cache optimised multi threaded (tn) implementation */
         template <std::size_t OtherColumns>
-        constexpr MatrixImpl<T, Rows, OtherColumns> multiplication_tn(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
+        MatrixImpl<T, Rows, OtherColumns> multiplication_tn(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
         template <std::size_t OtherColumns>
         constexpr void multiplication_parallel_aux(MatrixImpl<T, Rows, OtherColumns> &result, const MatrixImpl<T, Columns, OtherColumns> &other, std::size_t start, std::size_t end) const noexcept;
         using Chunks = std::vector<std::pair<std::size_t, std::size_t>>;
@@ -73,9 +73,9 @@ namespace matrix
         constexpr MatrixImpl addition(const MatrixImpl &other) && noexcept;
 
         /* multi threaded (tn) implementation */
-        constexpr MatrixImpl addition_tn(const MatrixImpl &other) const & noexcept;
+        MatrixImpl addition_tn(const MatrixImpl &other) const & noexcept;
         /* multi threaded (tn) implementation for rvalues */
-        constexpr MatrixImpl addition_tn(const MatrixImpl &other) && noexcept;
+        MatrixImpl addition_tn(const MatrixImpl &other) && noexcept;
         constexpr void addition_tn_aux(MatrixImpl &result, const MatrixImpl& other, std::size_t start, std::size_t end) const noexcept;
         constexpr void addition_tn_aux(const MatrixImpl& other, std::size_t start, std::size_t end) noexcept;
 
@@ -169,7 +169,7 @@ namespace matrix
 
     /* multi threaded (tn) implementation */
     template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) const & noexcept
+    MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) const & noexcept
     {
         MatrixImpl result{};
         std::vector<std::thread> threads{};
@@ -190,7 +190,7 @@ namespace matrix
 
     /* multi threaded (tn) implementation for rvalues */
     template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) && noexcept
+    MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) && noexcept
     {
         std::cout << "rvalue optimised (matrix * scalar)" << std::endl;
         std::vector<std::thread> threads{};
@@ -370,7 +370,7 @@ namespace matrix
     /* Use CPUs on a single NUMA node. Cross NUMA memory access is expensive */
     template <typename T, std::size_t Rows, std::size_t Columns>
     template <std::size_t OtherColumns>
-    constexpr MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_tn(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
+    MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_tn(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
     {
         MatrixImpl<T, Rows, OtherColumns> result{};
         std::vector<std::thread> threads{};
