@@ -9,7 +9,7 @@ int main()
 {
     constexpr Matrix<1, 3> aa1{{{{1, 2, 3}}}};
     constexpr Matrix<3, 1> aa2{{{{1}, {2}, {3}}}};
-    auto aa3 = aa1*aa2;
+    auto aa3 = aa1 * aa2;
     std::cout << "aa3 = aa1*aa2" << std::endl
               << aa3 << std::endl;
 
@@ -23,8 +23,11 @@ int main()
               << mx << std::endl;
 
     /*constexpr*/ auto mxx = m1 * mx;
-    std::cout << "matrix xx" << std::endl
+    std::cout << "matrix  m1 * mx" << std::endl
               << mxx << std::endl;
+
+    // std::cout << "matrix blocked m1 * mx" << std::endl
+    //           << m1.multiplication_blocked(mx) << std::endl;
 
     constexpr auto maa = m1 * 2.0;
     std::cout << "scalar m1 * 2" << std::endl
@@ -40,6 +43,23 @@ int main()
     auto mtnxx2 = m1.multiplication_tn(mx);
     std::cout << "multiplication tn xx" << std::endl
               << mtnxx2 << std::endl;
+
+    Matrix<4, 4> mx1{{{{1, 2, 0, 1}, {2, 1, 0, 2}, {0, 2, 1, 1}, {2, 1, 0, 2}}}};
+    Matrix<4, 4> mx2{{{{1, 1, 0, 2}, {2, 1, 1, 2}, {1, 2, 1, 0}, {0, 2, 1, 1}}}};
+
+    Matrix<4, 4> mx3{{{{2, 1, 0, 1}, {0, 2, 1, 0}, {1, 0, 2, 1}, {2, 1, 1, 2}}}};
+
+    std::cout << "multiplication t1 mx1 x mx2 " << std::endl
+              << mx1.multiplication_t1(mx2) << std::endl;
+
+    std::cout << "multiplication blocked mx1 x mx2 " << std::endl
+              << mx1.multiplication_blocked(mx2) << std::endl;
+
+    if(mx1.multiplication_t1(mx2) != mx1.multiplication_blocked(mx2)){
+        std::cout << "==================== fail =================" << std::endl;
+    }else{
+        std::cout << "go" << std::endl;
+    }
 
     constexpr auto m3 = m1 + m2;
     constexpr auto m4 = m3 - m1;
@@ -59,10 +79,6 @@ int main()
     std::cout << "m1 + m2 + m3 tn" << std::endl
               << m1.addition_tn(m2).addition_tn(m3) << std::endl;
 
-    Matrix<3,3> mx1{{{{1, 2, 3}, {2, 1, 3}, {3, 2, 1}}}};
-    Matrix<3,3> mx2{{{{1, 1, 3}, {2, 1, 1}, {1, 2, 1}}}};
-    Matrix<3,3> mx3{{{{3, 1, 3}, {2, 3, 1}, {1, 2, 3}}}};
-
     auto xxx = ab_c_generic(mx1, mx2, mx3);
     std::cout << "ab_c_generic" << std::endl
               << xxx << std::endl;
@@ -73,14 +89,17 @@ int main()
     std::cout << "ab_c_optimised_tn" << std::endl
               << ab_c_optimised_tn(mx1, mx2, mx3) << std::endl;
 
-    if( m1 == m2){
+    if (m1 == m2)
+    {
         std::cout << "m1 == m2" << std::endl;
     }
 
-    if( mx1 == mx2){
+    if (mx1 == mx2)
+    {
         std::cout << "mx1 == mx2" << std::endl;
     }
-    else{
+    else
+    {
         std::cout << "mx1 != mx2" << std::endl;
     }
 

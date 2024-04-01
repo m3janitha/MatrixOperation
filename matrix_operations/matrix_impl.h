@@ -17,12 +17,25 @@ namespace matrix
         constexpr MatrixImpl() = default;
         constexpr explicit MatrixImpl(const Data &data) : data_(data){};
 
-        /* public getters */
+        /* Public getters */
         static constexpr std::size_t rows() noexcept { return Rows; }
         static constexpr std::size_t columns() noexcept { return Columns; }
-
+        /* Getter for data */
         constexpr Data &data() { return data_; }
         constexpr const Data &data() const { return data_; }
+
+        /* Scalar multiplication (matrix * scalar) */
+        constexpr MatrixImpl operator*(T scalar) const & noexcept;
+        /* Scalar multiplication (matrix * scalar) (reuse the rvalue instead of allocatiing new) */
+        constexpr MatrixImpl operator*(T scalar) && noexcept;
+
+        /* Scalar multiplication (scalar * matrix) */
+        friend constexpr MatrixImpl operator*(T scalar, const MatrixImpl &mat) noexcept { return mat * scalar; }
+        /* Scalar multiplication (scalar * matrix) (reuse the rvalue instead of allocatiing new) */
+        friend constexpr MatrixImpl operator*(T scalar, MatrixImpl &&mat) noexcept { return std::move(mat) * scalar; }
+
+        template <std::size_t OtherColumns>
+        /*constexpr*/ MatrixImpl<T, Rows, OtherColumns> operator*(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
 
         /* Addition for lvlues */
         constexpr MatrixImpl operator+(const MatrixImpl &other) const & noexcept;
@@ -34,20 +47,7 @@ namespace matrix
         /* Subtraction for rvalues (reuse the rvalue instead of allocatiing new) */
         constexpr MatrixImpl operator-(const MatrixImpl &other) && noexcept;
 
-        /* Scalar multiplication (matrix * scalar) */
-        constexpr MatrixImpl operator*(T scalar) const & noexcept;
-        /* Scalar multiplication (matrix * scalar) (reuse the rvalue instead of allocatiing new) */
-        constexpr MatrixImpl operator*(T scalar) && noexcept;
-
-        /* Scalar multiplication (scalar * matrix) */
-        friend constexpr MatrixImpl operator*(T scalar, const MatrixImpl &mat) noexcept { return mat * scalar; }
-        /* Scalar multiplication (scalar * matrix) */
-        friend constexpr MatrixImpl operator*(T scalar, MatrixImpl &&mat) noexcept { return std::move(mat) * scalar; }
-
-        template <std::size_t OtherColumns>
-        /*constexpr*/ MatrixImpl<T, Rows, OtherColumns> operator*(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
-
-        /* The naive implementation */
+        /* Different multiplication implementations (public for user convenience) */
         template <std::size_t OtherColumns>
         constexpr MatrixImpl<T, Rows, OtherColumns> multiplication_naive(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
 
@@ -58,14 +58,24 @@ namespace matrix
         /* Cache optimised multi threaded (tn) implementation */
         template <std::size_t OtherColumns>
         MatrixImpl<T, Rows, OtherColumns> multiplication_tn(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
+
         template <std::size_t OtherColumns>
         constexpr void multiplication_parallel_aux(MatrixImpl<T, Rows, OtherColumns> &result, const MatrixImpl<T, Columns, OtherColumns> &other, std::size_t start, std::size_t end) const noexcept;
+
         using Chunks = std::vector<std::pair<std::size_t, std::size_t>>;
-        static Chunks compute_parallel_chunks(const std::size_t array_length, const std::size_t number_of_threads);  
+        static Chunks compute_parallel_chunks(const std::size_t array_length, const std::size_t number_of_threads);
+
         /* This should ideally set from config based on the host arch */
-        static constexpr std::size_t number_of_worker_threads{8};        
+        static constexpr std::size_t number_of_worker_threads_{8};
         /* Chunks are calcluated once for this class */
-        inline static const Chunks chunks_{compute_parallel_chunks(MatrixImpl::rows(), number_of_worker_threads)};
+        inline static const Chunks chunks_{compute_parallel_chunks(MatrixImpl::rows(), number_of_worker_threads_)};
+
+        /* Cache optimised blocked (t1) implementation */
+        template <std::size_t OtherColumns>
+        MatrixImpl<T, Rows, OtherColumns> multiplication_blocked(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
+        /* L1 chache line size */
+        static constexpr std::size_t hardware_constructive_interference_size{32};
+        static constexpr std::size_t block_size_{hardware_constructive_interference_size/sizeof(T)};
 
         /* single threaded (t1) implementation */
         constexpr MatrixImpl addition(const MatrixImpl &other) const & noexcept;
@@ -76,10 +86,11 @@ namespace matrix
         MatrixImpl addition_tn(const MatrixImpl &other) const & noexcept;
         /* multi threaded (tn) implementation for rvalues */
         MatrixImpl addition_tn(const MatrixImpl &other) && noexcept;
-        constexpr void addition_tn_aux(MatrixImpl &result, const MatrixImpl& other, std::size_t start, std::size_t end) const noexcept;
-        constexpr void addition_tn_aux(const MatrixImpl& other, std::size_t start, std::size_t end) noexcept;
+        constexpr void addition_tn_aux(MatrixImpl &result, const MatrixImpl &other, std::size_t start, std::size_t end) const noexcept;
+        constexpr void addition_tn_aux(const MatrixImpl &other, std::size_t start, std::size_t end) noexcept;
 
-        auto operator<=>(const MatrixImpl&) const = default;
+        auto operator<=>(const MatrixImpl &) const = default;
+
     private:
         std::array<std::array<T, Columns>, Rows> data_{};
     };
@@ -97,146 +108,6 @@ namespace matrix
             os << "]" << std::endl;
         }
         return os;
-    }
-
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator+(const MatrixImpl &other) const & noexcept
-    {
-        return addition(other);
-    }
-
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator+(const MatrixImpl &other) && noexcept
-    {
-        return addition(other);
-    }
-
-    /* single threaded (t1) implementation */
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition(const MatrixImpl &other) const & noexcept
-    {
-        MatrixImpl result{};
-        for (std::size_t row{0}; row < rows(); row++)
-        {
-            for (std::size_t column{0}; column < columns(); column++)
-            {
-                result.data_[row][column] = data_[row][column] + other.data_[row][column];
-            }
-        }
-
-        return result;
-    }
-
-    /* single threaded (t1) implementation for rvalues */
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition(const MatrixImpl &other) && noexcept
-    {
-        for (std::size_t row{0}; row < rows(); row++)
-        {
-            for (std::size_t column{0}; column < columns(); column++)
-            {
-                data_[row][column] += other.data_[row][column];
-            }
-        }
-
-        return *this;
-    }
-
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr void MatrixImpl<T, Rows, Columns>::addition_tn_aux(MatrixImpl &result, const MatrixImpl& other, std::size_t start, std::size_t end) const noexcept
-    {
-        /* For each row in A from Start to End of this chunk */
-        for (std::size_t row{start}; row < end; row++)
-        {
-            for (std::size_t column{0}; column < columns(); column++)
-            {
-                result.data_[row][column] = data_[row][column] + other.data_[row][column];
-            }
-        }
-    }
-
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr void MatrixImpl<T, Rows, Columns>::addition_tn_aux(const MatrixImpl& other, std::size_t start, std::size_t end) noexcept
-    {
-        /* For each row in A from Start to End of this chunk */
-        for (std::size_t row{start}; row < end; row++)
-        {
-            for (std::size_t column{0}; column < columns(); column++)
-            {
-                data_[row][column] += other.data_[row][column];
-            }
-        }
-    }
-
-    /* multi threaded (tn) implementation */
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) const & noexcept
-    {
-        MatrixImpl result{};
-        std::vector<std::thread> threads{};
-        for (auto &chunk : chunks_)
-        {
-            /* thread creation is costly, use thread pools for better performance */
-            threads.emplace_back([this, &result, &other, &chunk]()
-                                 { addition_tn_aux(result, other, chunk.first, chunk.second); });
-        }
-
-        for (auto &thread : threads)
-        {
-            thread.join();
-        }
-
-        return result;
-    }
-
-    /* multi threaded (tn) implementation for rvalues */
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) && noexcept
-    {
-        std::cout << "rvalue optimised (matrix * scalar)" << std::endl;
-        std::vector<std::thread> threads{};
-        for (auto &chunk : chunks_)
-        {
-            /* thread creation is costly, use thread pools for better performance */
-            threads.emplace_back([this, &other, &chunk]()
-                                 { addition_tn_aux(other, chunk.first, chunk.second); });
-        }
-
-        for (auto &thread : threads)
-        {
-            thread.join();
-        }
-
-        return *this;
-    }
-
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator-(const MatrixImpl &other) const & noexcept
-    {
-        MatrixImpl result{};
-        for (std::size_t row{0}; row < rows(); row++)
-        {
-            for (std::size_t column{0}; column < columns(); column++)
-            {
-                result.data_[row][column] = data_[row][column] - other.data_[row][column];
-            }
-        }
-
-        return result;
-    }
-
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator-(const MatrixImpl &other) && noexcept
-    {
-        for (std::size_t row{0}; row < rows(); row++)
-        {
-            for (std::size_t column{0}; column < columns(); column++)
-            {
-                data_[row][column] -= other.data_[row][column];
-            }
-        }
-
-        return *this;
     }
 
     template <typename T, std::size_t Rows, std::size_t Columns>
@@ -353,9 +224,9 @@ namespace matrix
         for (std::size_t i{start}; i < end; i++)
         {
             /* For each column in A (row in B) */
-            for (std::size_t k{0}; k < this->columns(); k++)
+            for (std::size_t k{0}; k < columns(); k++)
             {
-                auto data_ik = this->data_[i][k];
+                auto data_ik = data_[i][k];
                 /* For each column in B (column in R) */
                 for (std::size_t j{0}; j < other.columns(); j++)
                 {
@@ -388,5 +259,164 @@ namespace matrix
         }
 
         return result;
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    template <std::size_t OtherColumns>
+    MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_blocked(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
+    {
+        static_assert(Rows == Columns);
+        static_assert(Rows == OtherColumns);
+        MatrixImpl<T, Rows, OtherColumns> result{};
+        // For each row
+        //for (std::size_t row = 0; row < N; row++)
+        for (std::size_t i = 0; i < rows(); i++)
+            // For each block in the row. (B elements at a time)
+            //for (std::size_t block = 0; block < N; block += block_size_)
+            for (std::size_t i_block = 0; i_block < columns(); i_block += block_size_)
+                // For each chunk of A/B for this block
+                //for (std::size_t chunk = 0; chunk < N; chunk += block_size_)
+                for (std::size_t k = 0; k < other.columns(); k += block_size_)
+                    // For each row in the chunk
+                    //for (std::size_t sub_chunk = 0; sub_chunk < block_size_; sub_chunk++)
+                    for (std::size_t k_block = 0; k_block < block_size_; k_block++)
+                        // Go through all the elements in the sub chunk
+                        //for (std::size_t idx = 0; idx < block_size_; idx++)
+                        for (std::size_t idx = 0; idx < block_size_; idx++)
+                            result.data()[i][i_block + idx] += data()[i][k + k_block] * other.data()[k + k_block][i_block + idx];
+                            //result.data()[row][block + idx] += data()[row][chunk + sub_chunk] * other.data()[chunk + sub_chunk][block + idx];
+        
+        // C[row * N + block + idx] +=
+        //     A[row * N + chunk + sub_chunk] *
+        //     B[chunk * N + sub_chunk * N + block + idx];
+
+        return result;
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator+(const MatrixImpl &other) const & noexcept
+    {
+        return addition(other);
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator+(const MatrixImpl &other) && noexcept
+    {
+        return addition(other);
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    constexpr void MatrixImpl<T, Rows, Columns>::addition_tn_aux(MatrixImpl &result, const MatrixImpl &other, std::size_t start, std::size_t end) const noexcept
+    {
+        /* For each row in A from Start to End of this chunk */
+        for (std::size_t row{start}; row < end; row++)
+        {
+            for (std::size_t column{0}; column < columns(); column++)
+            {
+                result.data_[row][column] = data_[row][column] + other.data_[row][column];
+            }
+        }
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    constexpr void MatrixImpl<T, Rows, Columns>::addition_tn_aux(const MatrixImpl &other, std::size_t start, std::size_t end) noexcept
+    {
+        /* For each row in A from Start to End of this chunk */
+        for (std::size_t row{start}; row < end; row++)
+        {
+            for (std::size_t column{0}; column < columns(); column++)
+            {
+                /* update this->data_ for R values */
+                data_[row][column] += other.data_[row][column];
+            }
+        }
+    }
+
+    /* single threaded (t1) implementation */
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition(const MatrixImpl &other) const & noexcept
+    {
+        MatrixImpl result{};
+        addition_tn_aux(result, other, 0, rows());
+        return result;
+    }
+
+    /* single threaded (t1) implementation for rvalues */
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition(const MatrixImpl &other) && noexcept
+    {
+        addition_tn_aux(other, 0, rows());
+        return *this;
+    }
+
+    /* multi threaded (tn) implementation */
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) const & noexcept
+    {
+        MatrixImpl result{};
+        std::vector<std::thread> threads{};
+        for (auto &chunk : chunks_)
+        {
+            /* thread creation is costly, use thread pools for better performance */
+            threads.emplace_back([this, &result, &other, &chunk]()
+                                 { addition_tn_aux(result, other, chunk.first, chunk.second); });
+        }
+
+        for (auto &thread : threads)
+        {
+            thread.join();
+        }
+
+        return result;
+    }
+
+    /* multi threaded (tn) implementation for rvalues */
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) && noexcept
+    {
+        std::cout << "rvalue optimised (matrix * scalar)" << std::endl;
+        std::vector<std::jthread> threads{};
+        for (auto [start, end] : chunks_)
+        {
+            /* thread creation is costly, use thread pools for better performance */
+            threads.emplace_back([this, &other, start, end]()
+                                 { addition_tn_aux(other, start, end); });
+        }
+
+        for (auto &thread : threads)
+        {
+            thread.join();
+        }
+
+        return *this;
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator-(const MatrixImpl &other) const & noexcept
+    {
+        MatrixImpl result{};
+        for (std::size_t row{0}; row < rows(); row++)
+        {
+            for (std::size_t column{0}; column < columns(); column++)
+            {
+                result.data_[row][column] = data_[row][column] - other.data_[row][column];
+            }
+        }
+
+        return result;
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator-(const MatrixImpl &other) && noexcept
+    {
+        for (std::size_t row{0}; row < rows(); row++)
+        {
+            for (std::size_t column{0}; column < columns(); column++)
+            {
+                data_[row][column] -= other.data_[row][column];
+            }
+        }
+
+        return *this;
     }
 }

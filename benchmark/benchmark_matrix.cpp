@@ -52,8 +52,8 @@ using MatrixFixture64 = MatrixFixture<Matrix<64, 64>>;
 using MatrixFixture128 = MatrixFixture<Matrix<128, 128>>;
 using MatrixFixture256 = MatrixFixture<Matrix<256, 256>>;
 using MatrixFixture512 = MatrixFixture<Matrix<512, 512>>;
-using MatrixFixture1024 =  MatrixFixture<Matrix<1024,1024>>;
-using MatrixFixture2048 =  MatrixFixture<Matrix<2048,2048>>;
+using MatrixFixture1024 = MatrixFixture<Matrix<1024, 1024>>;
+using MatrixFixture2048 = MatrixFixture<Matrix<2048, 2048>>;
 
 /* To avoid code duplication */
 #define BenchmarkTemplateMatrix(ClassName, FunctionName) \
@@ -72,12 +72,10 @@ using MatrixFixture2048 =  MatrixFixture<Matrix<2048,2048>>;
     BenchmarkTemplateMatrix(ClassName##256, FunctionName);     \
     BenchmarkTemplateMatrix(ClassName##512, FunctionName);
 
-
 #define BenchmarkTemplateMatrixForAll_BIG(ClassName, FunctionName) \
-    BenchmarkTemplateMatrixForAll(ClassName, FunctionName)  \
-    BenchmarkTemplateMatrix(ClassName##1024, FunctionName); \
-    BenchmarkTemplateMatrix(ClassName##2048, FunctionName); 
-
+    BenchmarkTemplateMatrixForAll(ClassName, FunctionName)         \
+        BenchmarkTemplateMatrix(ClassName##1024, FunctionName);    \
+    BenchmarkTemplateMatrix(ClassName##2048, FunctionName);
 
 /* benchmark matrix multiplication */
 
@@ -104,6 +102,18 @@ static void matrix_multiplication_t1(Fixture &fixture, benchmark::State &state)
 }
 
 BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_t1);
+
+template <typename Fixture>
+static void matrix_multiplication_blocked(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = fixture.m1.multiplication_blocked(fixture.m2);
+        benchmark::DoNotOptimize(m);
+    }
+}
+
+BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_blocked);
 
 template <typename Fixture>
 static void matrix_multiplication_tn(Fixture &fixture, benchmark::State &state)
@@ -176,6 +186,5 @@ static void BM_ab_c_optimised_tn(Fixture &fixture, benchmark::State &state)
 }
 
 BenchmarkTemplateMatrixForAll(MatrixFixture, BM_ab_c_optimised_tn);
-
 
 BENCHMARK_MAIN();
