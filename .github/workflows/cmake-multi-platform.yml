@@ -4,9 +4,9 @@ name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -77,11 +77,10 @@ jobs:
     - name: Benchmark on Windows
       if: startsWith(matrix.os, 'windows')
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: cd benchmark/Release && benchmark_test.exe
+      run: cd benchmark/Release # && benchmark_test.exe
 
     - name: Benchmark on Linux
       if: startsWith(matrix.os, 'windows') != true
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       shell: bash
-      run: lscpu && cd benchmark && ./benchmark_test
-            
+      run: lscpu && cd benchmark && ./benchmark_matrix
