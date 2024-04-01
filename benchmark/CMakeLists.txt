@@ -10,20 +10,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(googlebenchmark)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    message("setting MSVC CMAKE_CXX_FLAGS")
-    target_compile_options(matrix_operations PRIVATE /W4 /WX)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    message("setting GCC CMAKE_CXX_FLAGS")
-    target_compile_options(matrix_operations PRIVATE -Wall -Wextra -pedantic -Werror -Wno-unused-but-set-variable -msse2 -mfpmath=sse -ftree-vectorizer-verbose=5)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(matrix_operations PRIVATE -Wno-unused-variable)    
-else()
-    message("setting ${CMAKE_CXX_COMPILER_ID} CMAKE_CXX_FLAGS")
-endif()
-
-add_executable(benchmark_test benchmark_matrix.cpp)
-target_link_libraries(benchmark_test benchmark::benchmark)
-target_link_libraries(benchmark_test GTest::gtest GTest::gtest_main)
-
-
+add_executable(benchmark_matrix benchmark_matrix.cpp)
+target_link_libraries(benchmark_matrix benchmark::benchmark)
+target_link_libraries(benchmark_matrix GTest::gtest GTest::gtest_main)

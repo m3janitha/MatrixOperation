@@ -2,12 +2,6 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 add_executable (matrix_operations main.cpp)
 
-if(MSVC)
-  target_compile_options(matrix_operations PRIVATE /W4 /WX)
-else()
-  
-endif()
-
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     message("setting MSVC CMAKE_CXX_FLAGS")
     target_compile_options(matrix_operations PRIVATE /W4 /WX)
