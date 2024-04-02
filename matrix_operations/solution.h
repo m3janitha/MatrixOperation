@@ -101,11 +101,10 @@ namespace matrix
         return result;
     }
 
-    /* Final */
+    /* Configure this to select the optimal implementation based on matrix size */
     template <typename T, std::size_t Rows, std::size_t Columns, std::size_t OtherColumns>
     constexpr MatrixImpl<T, Rows, OtherColumns> ab_c(MatrixImpl<T, Rows, Columns> &a, MatrixImpl<T, Columns, OtherColumns> &b, MatrixImpl<T, Rows, OtherColumns> &c)
     {
-        /* points to the best solution */
         if constexpr (Rows * Columns * OtherColumns < 8 * 8 * 8)
             return ab_c_optimised(a, b, c);
         else if constexpr (Rows * Columns * OtherColumns < 128 * 128 * 128)
