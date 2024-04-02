@@ -145,6 +145,7 @@ namespace matrix
         return *this;
     }
 
+    /* Configure this to select the optimal implementation based on matrix size */
     template <typename T, std::size_t Rows, std::size_t Columns>
     template <std::size_t OtherColumns>
     constexpr MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::operator*(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
