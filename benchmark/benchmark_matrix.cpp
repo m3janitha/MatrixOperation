@@ -1,26 +1,8 @@
 #include <benchmark/benchmark.h>
 #include <matrix_operations/matrix.h>
 #include <matrix_operations/solution.h>
-#include <random>
-#include <ctime>
+#include <matrix_operations/matrix_util.h>
 #include <iostream>
-
-template <typename T, typename M>
-void fill_matrix(M &m)
-{
-    /* Create our random number generators */
-    std::mt19937 rng;
-    rng.seed(std::random_device()());
-    std::uniform_real_distribution<T> dist(-10, 10);
-
-    for (std::size_t r = 0; r < m.rows(); r++)
-    {
-        for (std::size_t c = 0; c < m.columns(); c++)
-        {
-            m.data()[r][c] = dist(rng);
-        }
-    }
-}
 
 template <typename MatrixType>
 class MatrixFixture : public benchmark::Fixture
@@ -128,6 +110,30 @@ static void matrix_multiplication_tn(Fixture &fixture, benchmark::State &state)
 BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_tn);
 
 template <typename Fixture>
+static void matrix_multiplication_omp(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = fixture.m1.multiplication_omp(fixture.m2);
+        benchmark::DoNotOptimize(m);
+    }
+}
+
+BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_omp);
+
+template <typename Fixture>
+static void matrix_multiplication_operator(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = fixture.m1 * fixture.m2;
+        benchmark::DoNotOptimize(m);
+    }
+}
+
+BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_operator);
+
+template <typename Fixture>
 static void matrix_addition(Fixture &fixture, benchmark::State &state)
 {
     for (auto _ : state)
@@ -186,5 +192,29 @@ static void BM_ab_c_optimised_tn(Fixture &fixture, benchmark::State &state)
 }
 
 BenchmarkTemplateMatrixForAll(MatrixFixture, BM_ab_c_optimised_tn);
+
+template <typename Fixture>
+static void BM_ab_c_omp(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = ab_c_omp(fixture.m1, fixture.m2, fixture.m3);
+        benchmark::DoNotOptimize(m);
+    }
+}
+
+BenchmarkTemplateMatrixForAll(MatrixFixture, BM_ab_c_omp);
+
+template <typename Fixture>
+static void BM_ab_c(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = ab_c(fixture.m1, fixture.m2, fixture.m3);
+        benchmark::DoNotOptimize(m);
+    }
+}
+
+BenchmarkTemplateMatrixForAll(MatrixFixture, BM_ab_c);
 
 BENCHMARK_MAIN();

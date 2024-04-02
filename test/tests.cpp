@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <matrix_operations/matrix.h>
 #include <matrix_operations/solution.h>
+#include <matrix_operations/matrix_util.h>
 
 using namespace std::string_literals;
 using namespace ::matrix;
@@ -65,6 +66,7 @@ void validate_multiplication(A &a, B &b, R &r)
     EXPECT_EQ(a.multiplication_naive(b), r);
     EXPECT_EQ(a.multiplication_t1(b), r);
     EXPECT_EQ(a.multiplication_tn(b), r);
+    EXPECT_EQ(a.multiplication_omp(b), r);
 }
 
 /* A: 1 X 2  B:2 X 1 R: 1 * 1 */
@@ -96,6 +98,48 @@ TEST(Multiplication, 3x3_3X3_matrices)
     validate_multiplication(a, b, r);
 }
 
+/* precision is 0.0000001 */
+template <std::size_t R, std::size_t C>
+void validate_double_matrix(const Matrix<R, C> &r, const Matrix<R, C> &r_expected)
+{
+    for (std::size_t i = 0; i < R; i++)
+    {
+        for (std::size_t j = 0; j < C; j++)
+        {
+            EXPECT_NEAR(r.data()[i][j], r_expected.data()[i][j], 0.0000001);
+        }
+    }
+}
+
+template <std::size_t R, std::size_t C, std::size_t C2>
+void validate_m_n_matrix()
+{
+    Matrix<R, C> a{};
+    fill_matrix<double>(a);
+    Matrix<C, C2> b{};
+    fill_matrix<double>(b);
+
+    auto r = a * b;
+    validate_double_matrix<R, C2>(a.multiplication_naive(b), r);
+    validate_double_matrix<R, C2>(a.multiplication_t1(b), r);
+    validate_double_matrix<R, C2>(a.multiplication_tn(b), r);
+    validate_double_matrix<R, C2>(a.multiplication_omp(b), r);
+}
+
+TEST(Multiplication, mxn_nXm_matrices)
+{
+    /* NxN */
+    validate_m_n_matrix<3, 3, 3>();
+    validate_m_n_matrix<10, 10, 10>();
+    validate_m_n_matrix<100, 100, 100>();
+    validate_m_n_matrix<250, 250, 250>();
+    /* M x N*/
+    validate_m_n_matrix<10, 5, 10>();
+    validate_m_n_matrix<9, 5, 7>();
+    validate_m_n_matrix<120, 5, 150>();
+    validate_m_n_matrix<250, 100, 102>();
+}
+
 /* Solution: A . B + C = R */
 /* To verify the correctness of the optimized expression R = A.B + C R is compared aginst the values from Matrix Class */
 template <typename A, typename B, typename C>
@@ -106,6 +150,7 @@ void validate_ab_c(A &a, B &b, C &c)
     EXPECT_EQ(ab_c_generic(a, b, c), r_expected);
     EXPECT_EQ(ab_c_optimised(a, b, c), r_expected);
     EXPECT_EQ(ab_c_optimised_tn(a, b, c), r_expected);
+    EXPECT_EQ(ab_c_omp(a, b, c), r_expected);
 }
 
 TEST(Solution, 3x3_3X3_matrices)
@@ -115,4 +160,37 @@ TEST(Solution, 3x3_3X3_matrices)
     Matrix<3, 3> c{{{{3, 1, 3}, {2, 3, 1}, {1, 2, 3}}}};
 
     validate_ab_c(a, b, c);
+}
+
+/* To verify the correctness of the optimized expression R = A.B + C R is compared aginst the values from Matrix Class */
+template <std::size_t R, std::size_t C, std::size_t C2>
+void validate_m_n_ab_c()
+{
+    Matrix<R, C> a{};
+    fill_matrix<double>(a);
+    Matrix<C, C2> b{};
+    fill_matrix<double>(b);
+
+    Matrix<R, C2> c{};
+    fill_matrix<double>(c);
+
+    auto r = (a * b) + c;
+    validate_double_matrix<R, C2>(ab_c_generic(a, b, c), r);
+    validate_double_matrix<R, C2>(ab_c_optimised(a, b, c), r);
+    validate_double_matrix<R, C2>(ab_c_optimised_tn(a, b, c), r);
+    validate_double_matrix<R, C2>(ab_c_omp(a, b, c), r);
+}
+
+TEST(Solution, mxn_nXm_matrices)
+{
+    /* NxN */
+    validate_m_n_ab_c<3, 3, 3>();
+    validate_m_n_ab_c<10, 10, 10>();
+    validate_m_n_ab_c<100, 100, 100>();
+    validate_m_n_ab_c<250, 250, 250>();
+    /* M x N*/
+    validate_m_n_ab_c<3, 2, 4>();
+    validate_m_n_ab_c<9, 5, 7>();
+    validate_m_n_ab_c<120, 5, 150>();
+    validate_m_n_ab_c<250, 100, 102>();
 }

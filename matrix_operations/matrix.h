@@ -1,6 +1,6 @@
 #pragma once
 
-#include "matrix_impl.h"
+#include <matrix_operations/matrix_impl.h>
 
 namespace matrix
 { 

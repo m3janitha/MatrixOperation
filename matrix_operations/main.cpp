@@ -1,5 +1,5 @@
-#include "matrix.h"
-#include "solution.h"
+#include <matrix_operations/matrix.h>
+#include <matrix_operations/solution.h>
 #include <iostream>
 #include <vector>
 

@@ -1,5 +1,4 @@
 include_directories(${PROJECT_SOURCE_DIR})
-message("PROJECT_SOURCE_DIR ${PROJECT_SOURCE_DIR}")
 
 add_executable (matrix_operations main.cpp)
 
@@ -8,7 +7,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(matrix_operations PRIVATE /W4 /WX)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     message("setting GCC CMAKE_CXX_FLAGS")
-    target_compile_options(matrix_operations PRIVATE -Wall -Wextra -pedantic -Werror -Wno-unused-but-set-variable)
+    target_compile_options(matrix_operations PRIVATE -Wall -Wextra -pedantic -Werror -Wno-unused-but-set-variable -ffast-math -fopenmp)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(matrix_operations PRIVATE -Wno-unused-variable)    
 else()

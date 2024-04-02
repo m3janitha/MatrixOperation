@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <iostream>
 #include <thread>
+#include <omp.h>
 
 namespace matrix
 {
@@ -20,6 +21,10 @@ namespace matrix
         /* Public getters */
         static constexpr std::size_t rows() noexcept { return Rows; }
         static constexpr std::size_t columns() noexcept { return Columns; }
+        using Chunks = std::vector<std::pair<std::size_t, std::size_t>>;
+        static const Chunks &get_chunks() { return chunks_; }
+        static std::size_t number_of_worker_threads() { return number_of_worker_threads_; }
+
         /* Getter for data */
         constexpr Data &data() { return data_; }
         constexpr const Data &data() const { return data_; }
@@ -60,22 +65,15 @@ namespace matrix
         MatrixImpl<T, Rows, OtherColumns> multiplication_tn(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
 
         template <std::size_t OtherColumns>
-        constexpr void multiplication_parallel_aux(MatrixImpl<T, Rows, OtherColumns> &result, const MatrixImpl<T, Columns, OtherColumns> &other, std::size_t start, std::size_t end) const noexcept;
-
-        using Chunks = std::vector<std::pair<std::size_t, std::size_t>>;
-        static Chunks compute_parallel_chunks(const std::size_t array_length, const std::size_t number_of_threads);
-
-        /* This should ideally set from config based on the host arch */
-        static constexpr std::size_t number_of_worker_threads_{8};
-        /* Chunks are calcluated once for this class */
-        inline static const Chunks chunks_{compute_parallel_chunks(MatrixImpl::rows(), number_of_worker_threads_)};
+        constexpr void multiplication_t_aux(MatrixImpl<T, Rows, OtherColumns> &result, const MatrixImpl<T, Columns, OtherColumns> &other, std::size_t start, std::size_t end) const noexcept;
 
         /* Cache optimised blocked (t1) implementation */
         template <std::size_t OtherColumns>
-        MatrixImpl<T, Rows, OtherColumns> multiplication_blocked(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
-        /* L1 chache line size */
-        static constexpr std::size_t hardware_constructive_interference_size{32};
-        static constexpr std::size_t block_size_{hardware_constructive_interference_size/sizeof(T)};
+        constexpr MatrixImpl<T, Rows, OtherColumns> multiplication_blocked(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
+
+        /* Cache optimised blocked (t1) implementation */
+        template <std::size_t OtherColumns>
+        constexpr MatrixImpl<T, Rows, OtherColumns> multiplication_omp(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
 
         /* single threaded (t1) implementation */
         constexpr MatrixImpl addition(const MatrixImpl &other) const & noexcept;
@@ -86,12 +84,22 @@ namespace matrix
         MatrixImpl addition_tn(const MatrixImpl &other) const & noexcept;
         /* multi threaded (tn) implementation for rvalues */
         MatrixImpl addition_tn(const MatrixImpl &other) && noexcept;
-        constexpr void addition_tn_aux(MatrixImpl &result, const MatrixImpl &other, std::size_t start, std::size_t end) const noexcept;
-        constexpr void addition_tn_aux(const MatrixImpl &other, std::size_t start, std::size_t end) noexcept;
 
         auto operator<=>(const MatrixImpl &) const = default;
 
     private:
+        constexpr void addition_tn_aux(MatrixImpl &result, const MatrixImpl &other, std::size_t start, std::size_t end) const noexcept;
+        constexpr void addition_tn_aux(const MatrixImpl &other, std::size_t start, std::size_t end) noexcept;
+        static Chunks compute_parallel_chunks(const std::size_t array_length, const std::size_t number_of_threads);
+
+        /* This should ideally set from config based on the host arch */
+        static constexpr std::size_t number_of_worker_threads_{8};
+        /* Chunks are calcluated once for this class */
+        inline static const Chunks chunks_{compute_parallel_chunks(MatrixImpl::rows(), number_of_worker_threads_)};
+        /* L1 chache line size */
+        static constexpr std::size_t hardware_constructive_interference_size{32};
+        static constexpr std::size_t block_size_{hardware_constructive_interference_size / sizeof(T)};
+        /* Data */
         std::array<std::array<T, Columns>, Rows> data_{};
     };
 
@@ -127,7 +135,6 @@ namespace matrix
     template <typename T, std::size_t Rows, std::size_t Columns>
     constexpr MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::operator*(T scalar) && noexcept
     {
-        std::cout << "rvalue optimised (matrix * scalar)" << std::endl;
         for (std::size_t row{0}; row < rows(); row++)
         {
             for (std::size_t column{0}; column < columns(); column++)
@@ -142,7 +149,12 @@ namespace matrix
     template <std::size_t OtherColumns>
     /*constexpr*/ MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::operator*(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
     {
-        return multiplication_tn(other);
+        if constexpr (Rows * Columns * OtherColumns < 8 * 8 * 8)
+            return multiplication_naive(other);
+        else if constexpr (Rows * Columns * OtherColumns < 128 * 128 * 128)
+            return multiplication_omp(other);
+        else
+            return multiplication_tn(other);
     }
 
     /* Not cache friendly */
@@ -151,14 +163,14 @@ namespace matrix
     constexpr MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_naive(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
     {
         MatrixImpl<T, Rows, OtherColumns> result{};
-        for (std::size_t row{0}; row < this->rows(); row++)
+        for (std::size_t row{0}; row < rows(); row++)
         {
             for (std::size_t other_col{0}; other_col < other.columns(); other_col++)
             {
                 T sum{0};
-                for (std::size_t column{0}; column < this->columns(); column++)
+                for (std::size_t column{0}; column < columns(); column++)
                 {
-                    sum += this->data_[row][column] * other.data()[column][other_col];
+                    sum += data_[row][column] * other.data()[column][other_col];
                 }
                 result.data()[row][other_col] = sum;
             }
@@ -173,16 +185,15 @@ namespace matrix
     /* B and R are traversed by rows to improve cache coherence */
     template <typename T, std::size_t Rows, std::size_t Columns>
     template <std::size_t OtherColumns>
-    constexpr MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_t1(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
+    constexpr void MatrixImpl<T, Rows, Columns>::multiplication_t_aux(MatrixImpl<T, Rows, OtherColumns> &result, const MatrixImpl<T, Columns, OtherColumns> &other, std::size_t start, std::size_t end) const noexcept
     {
-        MatrixImpl<T, Rows, OtherColumns> result{};
-        /* For each row in A */
-        for (std::size_t i{0}; i < this->rows(); i++)
+        /* For each row in A from Start to End of this chunk */
+        for (std::size_t i{start}; i < end; i++)
         {
             /* For each column in A (row in B) */
-            for (std::size_t k{0}; k < this->columns(); k++)
+            for (std::size_t k{0}; k < columns(); k++)
             {
-                auto data_ik = this->data_[i][k];
+                auto data_ik = data_[i][k];
                 /* For each column in B (column in R) */
                 for (std::size_t j{0}; j < other.columns(); j++)
                 {
@@ -190,6 +201,14 @@ namespace matrix
                 }
             }
         }
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    template <std::size_t OtherColumns>
+    constexpr MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_t1(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
+    {
+        MatrixImpl<T, Rows, OtherColumns> result{};
+        multiplication_t_aux(result, other, 0, rows());
         return result;
     }
 
@@ -212,45 +231,22 @@ namespace matrix
         return chunks;
     }
 
-    /* A . B = R */
-    /* Read single value from Matrix A at once and cache it (in register) */
-    /* For rows in A, For Columns in A(row in B), for Columns in B */
-    /* B and R are traversed by rows to improve cache coherence */
-    template <typename T, std::size_t Rows, std::size_t Columns>
-    template <std::size_t OtherColumns>
-    constexpr void MatrixImpl<T, Rows, Columns>::multiplication_parallel_aux(MatrixImpl<T, Rows, OtherColumns> &result, const MatrixImpl<T, Columns, OtherColumns> &other, std::size_t start, std::size_t end) const noexcept
-    {
-        /* For each row in A from Start to End of this chunk */
-        for (std::size_t i{start}; i < end; i++)
-        {
-            /* For each column in A (row in B) */
-            for (std::size_t k{0}; k < columns(); k++)
-            {
-                auto data_ik = data_[i][k];
-                /* For each column in B (column in R) */
-                for (std::size_t j{0}; j < other.columns(); j++)
-                {
-                    result.data()[i][j] += data_ik * other.data()[k][j];
-                }
-            }
-        }
-    }
-
-    /* Thread creation on demand is costly. Use the thread pool */
-    /* Run multiplication_parallel_aux for every chunk in a different thread */
-    /* Run threads on isolated CPUs for better performance */
-    /* Use CPUs on a single NUMA node. Cross NUMA memory access is expensive */
+    /* Thread creation on demand is costly. Consider using a thread pool instead. */
+    /* Execute multiplication_t_aux for each chunk in a separate thread. */
+    /* Run threads on isolated CPUs for better performance. */
+    /* Utilize CPUs within a single NUMA node. Cross-NUMA memory access is expensive. */
     template <typename T, std::size_t Rows, std::size_t Columns>
     template <std::size_t OtherColumns>
     MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_tn(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
     {
         MatrixImpl<T, Rows, OtherColumns> result{};
+        /* jthread is not supported in Clang 14 yet, so std::thread is being used instead. */
         std::vector<std::thread> threads{};
         for (auto &chunk : chunks_)
         {
             /* thread creation is costly, use thread pools for better performance */
             threads.emplace_back([this, &result, &other, &chunk]()
-                                 { multiplication_parallel_aux(result, other, chunk.first, chunk.second); });
+                                 { multiplication_t_aux(result, other, chunk.first, chunk.second); });
         }
 
         for (auto &thread : threads)
@@ -261,35 +257,63 @@ namespace matrix
         return result;
     }
 
+    /* This implimentation seems to have a bug */
     template <typename T, std::size_t Rows, std::size_t Columns>
     template <std::size_t OtherColumns>
-    MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_blocked(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
+    constexpr MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_blocked(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
     {
         static_assert(Rows == Columns);
         static_assert(Rows == OtherColumns);
         MatrixImpl<T, Rows, OtherColumns> result{};
-        // For each row
-        //for (std::size_t row = 0; row < N; row++)
+        /* For each row in A */
         for (std::size_t i = 0; i < rows(); i++)
-            // For each block in the row. (B elements at a time)
-            //for (std::size_t block = 0; block < N; block += block_size_)
+        {
+            /* For each column in A (row in B), advance by Block Size */
             for (std::size_t i_block = 0; i_block < columns(); i_block += block_size_)
+            {
                 // For each chunk of A/B for this block
-                //for (std::size_t chunk = 0; chunk < N; chunk += block_size_)
                 for (std::size_t k = 0; k < other.columns(); k += block_size_)
+                {
                     // For each row in the chunk
-                    //for (std::size_t sub_chunk = 0; sub_chunk < block_size_; sub_chunk++)
                     for (std::size_t k_block = 0; k_block < block_size_; k_block++)
+                    {
                         // Go through all the elements in the sub chunk
-                        //for (std::size_t idx = 0; idx < block_size_; idx++)
                         for (std::size_t idx = 0; idx < block_size_; idx++)
+                        {
                             result.data()[i][i_block + idx] += data()[i][k + k_block] * other.data()[k + k_block][i_block + idx];
-                            //result.data()[row][block + idx] += data()[row][chunk + sub_chunk] * other.data()[chunk + sub_chunk][block + idx];
-        
-        // C[row * N + block + idx] +=
-        //     A[row * N + chunk + sub_chunk] *
-        //     B[chunk * N + sub_chunk * N + block + idx];
+                        }
+                    }
+                }
+            }
+        }
 
+        return result;
+    }
+
+    template <typename T, std::size_t Rows, std::size_t Columns>
+    template <std::size_t OtherColumns>
+    constexpr MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::multiplication_omp(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
+    {
+        MatrixImpl<T, Rows, OtherColumns> result{};
+        std::size_t i{0};
+        std::size_t j{0};
+        std::size_t k{0};
+        omp_set_num_threads(number_of_worker_threads_);
+        #pragma omp parallel for private(i,j,k)
+        for (i = 0; i < rows(); i++)
+        {
+            /* For each column in A (row in B) */
+            // #pragma omp parallel for
+            for (k = 0; k < columns(); k++)
+            {
+                /* For each column in B (column in R) */
+                // #pragma omp parallel for
+                for (j = 0; j < other.columns(); j++)
+                {
+                    result.data()[i][j] += data_[i][k] * other.data()[k][j];
+                }
+            }
+        }
         return result;
     }
 
@@ -354,6 +378,7 @@ namespace matrix
     MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) const & noexcept
     {
         MatrixImpl result{};
+        /* jthread is not supported in Clang 14 yet, so std::thread is being used instead. */
         std::vector<std::thread> threads{};
         for (auto &chunk : chunks_)
         {
@@ -374,8 +399,8 @@ namespace matrix
     template <typename T, std::size_t Rows, std::size_t Columns>
     MatrixImpl<T, Rows, Columns> MatrixImpl<T, Rows, Columns>::addition_tn(const MatrixImpl &other) && noexcept
     {
-        std::cout << "rvalue optimised (matrix * scalar)" << std::endl;
-        std::vector<std::jthread> threads{};
+        /* jthread is not supported in Clang 14 yet, so std::thread is being used instead. */
+        std::vector<std::thread> threads{};
         for (auto [start, end] : chunks_)
         {
             /* thread creation is costly, use thread pools for better performance */
