@@ -299,7 +299,7 @@ namespace matrix
         std::size_t j{0};
         std::size_t k{0};
         omp_set_num_threads(number_of_worker_threads_);
-#pragma omp parallel for private(i, j, k)
+        #pragma omp parallel for private(i, j, k)
         for (i = 0; i < rows(); i++)
         {
             /* For each column in A (row in B) */

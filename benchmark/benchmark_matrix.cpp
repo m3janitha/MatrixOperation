@@ -55,8 +55,8 @@ using MatrixFixture2048 = MatrixFixture<Matrix<2048, 2048>>;
     BenchmarkTemplateMatrix(ClassName##512, FunctionName);
 
 #define BenchmarkTemplateMatrixForAll_BIG(ClassName, FunctionName) \
-    BenchmarkTemplateMatrixForAll(ClassName, FunctionName)         \
-        BenchmarkTemplateMatrix(ClassName##1024, FunctionName);    \
+    BenchmarkTemplateMatrixForAll(ClassName, FunctionName);        \
+    BenchmarkTemplateMatrix(ClassName##1024, FunctionName);        \
     BenchmarkTemplateMatrix(ClassName##2048, FunctionName);
 
 /* benchmark matrix multiplication */
@@ -132,7 +132,6 @@ static void matrix_multiplication_operator(Fixture &fixture, benchmark::State &s
 }
 
 BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_operator);
-
 
 /* Addition */
 template <typename Fixture>
