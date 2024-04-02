@@ -17,7 +17,7 @@ namespace matrix
     /* B and R are traversed by rows to improve cache coherence */
     /* Compute A . B and add C after each row is completed */
     template <typename T, std::size_t Rows, std::size_t Columns, std::size_t OtherColumns>
-    /*constexpr*/ void ab_c_optimised_aux(MatrixImpl<T, Rows, OtherColumns> &result, MatrixImpl<T, Rows, Columns> &a, MatrixImpl<T, Columns, OtherColumns> &b, MatrixImpl<T, Rows, OtherColumns> &c, std::size_t start, std::size_t end)
+    constexpr void ab_c_optimised_aux(MatrixImpl<T, Rows, OtherColumns> &result, MatrixImpl<T, Rows, Columns> &a, MatrixImpl<T, Columns, OtherColumns> &b, MatrixImpl<T, Rows, OtherColumns> &c, std::size_t start, std::size_t end)
     {
         /* For each row in A from start to end */
         for (std::size_t i{start}; i < end; i++)
@@ -78,21 +78,21 @@ namespace matrix
         std::size_t j{0};
         std::size_t k{0};
         omp_set_num_threads(MatrixImpl<T, Rows, Columns>::number_of_worker_threads());
-        #pragma omp parallel for private(i,j,k)
-        for (i=0; i < a.rows(); i++)
+#pragma omp parallel for private(i, j, k)
+        for (i = 0; i < a.rows(); i++)
         {
             /* For each column in A (row in B) */
-            for (k= 0; k < a.columns(); k++)
+            for (k = 0; k < a.columns(); k++)
             {
                 auto data_ik = a.data()[i][k];
                 /* For each column in B (column in R) */
-                for (j=0; j < b.columns(); j++)
+                for (j = 0; j < b.columns(); j++)
                 {
                     result.data()[i][j] += data_ik * b.data()[k][j];
                 }
             }
             /* AB + C for i th row.*/
-            for (j= 0; j < b.columns(); j++)
+            for (j = 0; j < b.columns(); j++)
             {
                 result.data()[i][j] = result.data()[i][j] + c.data()[i][j];
             }
@@ -106,11 +106,11 @@ namespace matrix
     constexpr MatrixImpl<T, Rows, OtherColumns> ab_c(MatrixImpl<T, Rows, Columns> &a, MatrixImpl<T, Columns, OtherColumns> &b, MatrixImpl<T, Rows, OtherColumns> &c)
     {
         /* points to the best solution */
-        if constexpr (Rows * Columns * OtherColumns < 8 * 8 * 8 )
-            return ab_c_optimised(a,b,c);
-        else if constexpr (Rows * Columns * OtherColumns < 128 * 128 * 128 )
-            return ab_c_omp(a,b,c);
+        if constexpr (Rows * Columns * OtherColumns < 8 * 8 * 8)
+            return ab_c_optimised(a, b, c);
+        else if constexpr (Rows * Columns * OtherColumns < 128 * 128 * 128)
+            return ab_c_omp(a, b, c);
         else
-            return ab_c_optimised_tn(a,b,c);
+            return ab_c_optimised_tn(a, b, c);
     }
 }

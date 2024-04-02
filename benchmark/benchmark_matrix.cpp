@@ -133,6 +133,8 @@ static void matrix_multiplication_operator(Fixture &fixture, benchmark::State &s
 
 BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_operator);
 
+
+/* Addition */
 template <typename Fixture>
 static void matrix_addition(Fixture &fixture, benchmark::State &state)
 {
@@ -155,6 +157,7 @@ static void matrix_addition_tn(Fixture &fixture, benchmark::State &state)
     }
 }
 
+/* Solution */
 BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_addition_tn);
 
 template <typename Fixture>

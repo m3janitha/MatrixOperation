@@ -40,7 +40,7 @@ namespace matrix
         friend constexpr MatrixImpl operator*(T scalar, MatrixImpl &&mat) noexcept { return std::move(mat) * scalar; }
 
         template <std::size_t OtherColumns>
-        /*constexpr*/ MatrixImpl<T, Rows, OtherColumns> operator*(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
+        constexpr MatrixImpl<T, Rows, OtherColumns> operator*(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
 
         /* Addition for lvlues */
         constexpr MatrixImpl operator+(const MatrixImpl &other) const & noexcept;
@@ -147,7 +147,7 @@ namespace matrix
 
     template <typename T, std::size_t Rows, std::size_t Columns>
     template <std::size_t OtherColumns>
-    /*constexpr*/ MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::operator*(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
+    constexpr MatrixImpl<T, Rows, OtherColumns> MatrixImpl<T, Rows, Columns>::operator*(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept
     {
         if constexpr (Rows * Columns * OtherColumns < 8 * 8 * 8)
             return multiplication_naive(other);
@@ -299,7 +299,7 @@ namespace matrix
         std::size_t j{0};
         std::size_t k{0};
         omp_set_num_threads(number_of_worker_threads_);
-        #pragma omp parallel for private(i,j,k)
+#pragma omp parallel for private(i, j, k)
         for (i = 0; i < rows(); i++)
         {
             /* For each column in A (row in B) */
