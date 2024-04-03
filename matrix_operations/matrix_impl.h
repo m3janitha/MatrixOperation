@@ -17,6 +17,7 @@ namespace matrix
 
         constexpr MatrixImpl() = default;
         constexpr explicit MatrixImpl(const Data &data) : data_(data){};
+        constexpr explicit MatrixImpl(Data &&data) : data_(std::move(data)){};
 
         /* Public getters */
         static constexpr std::size_t rows() noexcept { return Rows; }
