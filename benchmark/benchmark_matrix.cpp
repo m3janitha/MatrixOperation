@@ -2,7 +2,10 @@
 #include <matrix_operations/matrix.h>
 #include <matrix_operations/solution.h>
 #include <matrix_operations/matrix_util.h>
+#include <matrix_operations/thread_pool.h>
 #include <iostream>
+#include <matrix_operations/matrix_impl_2.h>
+
 
 template <typename MatrixType>
 class MatrixFixture : public benchmark::Fixture
@@ -59,6 +62,58 @@ using MatrixFixture2048 = MatrixFixture<Matrix<2048, 2048>>;
     BenchmarkTemplateMatrix(ClassName##1024, FunctionName);        \
     BenchmarkTemplateMatrix(ClassName##2048, FunctionName);
 
+//////////////////////////////////////////////////////////////////////
+template <typename MatrixType>
+class MatrixFixture2 : public benchmark::Fixture
+{
+public:
+    void SetUp(::benchmark::State &state) override
+    {
+        fill_matrix2<double>(m1);
+        fill_matrix2<double>(m2);
+        fill_matrix2<double>(m3);
+    }
+
+    void TearDown(::benchmark::State &state) override
+    {
+    }
+
+    /* size (M,N) is configured from the test */
+    MatrixType m1{};
+    MatrixType m2{};
+    MatrixType m3{};
+};
+
+using namespace matrix;
+
+using MatrixFixture28 = MatrixFixture2<matrix_tiled::Matrix<8, 8>>;
+using MatrixFixture216 = MatrixFixture2<matrix_tiled::Matrix<16, 16>>;
+using MatrixFixture232 = MatrixFixture2<matrix_tiled::Matrix<32, 32>>;
+using MatrixFixture264 = MatrixFixture2<matrix_tiled::Matrix<64, 64>>;
+using MatrixFixture2128 = MatrixFixture2<matrix_tiled::Matrix<128, 128>>;
+using MatrixFixture2256 = MatrixFixture2<matrix_tiled::Matrix<256, 256>>;
+using MatrixFixture2512 = MatrixFixture2<matrix_tiled::Matrix<512, 512>>;
+using MatrixFixture21024 = MatrixFixture2<matrix_tiled::Matrix<1024, 1024>>;
+using MatrixFixture22048 = MatrixFixture2<matrix_tiled::Matrix<2048, 2048>>;
+
+#define BenchmarkTemplateMatrix2(ClassName, FunctionName) \
+    BENCHMARK_F(ClassName, BM_##FunctionName)            \
+    (benchmark::State & state)                           \
+    {                                                    \
+        FunctionName(*this, state);                      \
+    }
+
+
+#define BenchmarkTemplateMatrixForAll2(ClassName, FunctionName) \
+    BenchmarkTemplateMatrix2(ClassName##8, FunctionName);       \
+    BenchmarkTemplateMatrix2(ClassName##16, FunctionName);      \
+    BenchmarkTemplateMatrix2(ClassName##32, FunctionName);      \
+    BenchmarkTemplateMatrix2(ClassName##64, FunctionName);      \
+    BenchmarkTemplateMatrix2(ClassName##128, FunctionName);     \
+    BenchmarkTemplateMatrix2(ClassName##256, FunctionName);     \
+    BenchmarkTemplateMatrix2(ClassName##512, FunctionName);
+
+//////////////////////////////////////////////////////////////////////
 /* benchmark matrix multiplication */
 
 template <typename Fixture>
@@ -86,6 +141,18 @@ static void matrix_multiplication_t1(Fixture &fixture, benchmark::State &state)
 BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_t1);
 
 template <typename Fixture>
+static void matrix_multiplication_tiled(Fixture &fixture, benchmark::State &state)
+{
+    for (auto _ : state)
+    {
+        auto m = fixture.m1.multiplication_tiled(fixture.m2);
+        benchmark::DoNotOptimize(m);
+    }
+}
+
+BenchmarkTemplateMatrixForAll2(MatrixFixture2, matrix_multiplication_tiled);
+
+template <typename Fixture>
 static void matrix_multiplication_blocked(Fixture &fixture, benchmark::State &state)
 {
     for (auto _ : state)
@@ -108,6 +175,20 @@ static void matrix_multiplication_tn(Fixture &fixture, benchmark::State &state)
 }
 
 BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_tn);
+
+// static thread_pool::ThreadPoolInstance tpi;
+
+// template <typename Fixture>
+// static void matrix_multiplication_tn_pool(Fixture &fixture, benchmark::State &state)
+// {
+//     for (auto _ : state)
+//     {
+//         auto m = fixture.m1.multiplication_tn_pool(fixture.m2);
+//         benchmark::DoNotOptimize(m);
+//     }
+// }
+
+// BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_tn_pool);
 
 template <typename Fixture>
 static void matrix_multiplication_omp(Fixture &fixture, benchmark::State &state)

@@ -2,6 +2,8 @@
 #include <matrix_operations/matrix.h>
 #include <matrix_operations/solution.h>
 #include <matrix_operations/matrix_util.h>
+#include <matrix_operations/matrix_impl_2.h>
+#include <matrix_operations/strassens_algorithm.h>
 
 using namespace std::string_literals;
 using namespace ::matrix;
@@ -193,4 +195,40 @@ TEST(Solution, mxn_nXm_matrices)
     validate_m_n_ab_c<9, 5, 7>();
     validate_m_n_ab_c<120, 5, 150>();
     validate_m_n_ab_c<250, 100, 102>();
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <std::size_t R, std::size_t C>
+void validate_m_n_matrix_2()
+{
+    Matrix<R, C> a{};
+    fill_matrix<int>(a);
+    Matrix<C, C> b{};
+    fill_matrix<int>(b);
+
+    matrix_tiled::Matrix<R, C> a2{a.data()};
+    matrix_tiled::Matrix<R, C> b2{b.data()};
+
+    auto r = a * b;
+    matrix_tiled::Matrix<R, C> rx{r.data()}; /* convert r to new type */
+    auto r2 = a2.multiplication_tiled(b2);    
+    EXPECT_EQ(rx, r2);
+
+    auto as = strassens::array_to_vec_matrix(a);
+    auto bs = strassens::array_to_vec_matrix(b);
+    auto rs = strassens::strassens_mult(as, bs);
+    Matrix<R, C> rss(strassens::vec_matrix_to_array<R, C>(rs));
+    EXPECT_EQ(r, rss);
+}
+
+TEST(Multiplication, n_n_matrices_tiled)
+{
+    /* NxN */
+    validate_m_n_matrix_2<8, 8>();
+    validate_m_n_matrix_2<16, 16>();
+    validate_m_n_matrix_2<32, 32>();
+    validate_m_n_matrix_2<64, 64>();
+    validate_m_n_matrix_2<128, 128>();
 }

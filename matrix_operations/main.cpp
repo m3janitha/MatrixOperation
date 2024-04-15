@@ -2,6 +2,9 @@
 #include <matrix_operations/solution.h>
 #include <iostream>
 #include <vector>
+#include <matrix_operations/strassens_algorithm.h>
+#include <matrix_operations/matrix_impl_2.h>
+#include <matrix_operations/matrix_util.h>
 
 using namespace matrix;
 
@@ -90,6 +93,98 @@ int main()
                   << "====== B ======" << std::endl
                   << b << std::endl
                   << "==== A - B ====" << std::endl
+                  << r << std::endl;
+    }
+
+    {
+        std::cout << "=================== Demo ===================" << std::endl;
+        constexpr Matrix<4, 4> a{{{{1, 2, 0, 1}, {2, 1, 0, 2}, {0, 2, 1, 1}, {2, 1, 0, 2}}}};
+        constexpr Matrix<4, 4> b{{{{1, 1, 0, 2}, {2, 1, 1, 2}, {1, 2, 1, 0}, {0, 2, 1, 1}}}};
+
+        constexpr auto r = a * b;
+        auto aa = strassens::array_to_vec_matrix(a);
+        auto bb = strassens::array_to_vec_matrix(b);
+
+        std::cout << "====== A ======" << std::endl
+                  << a << std::endl
+                  << "====== B ======" << std::endl
+                  << b << std::endl
+                  << "==== A x B ====" << std::endl
+                  << r << std::endl;
+    }
+
+    {
+        std::cout << "=================== Demo Blocked ===================" << std::endl;
+        Matrix<8, 8> a;
+        Matrix<8, 8> b;
+
+        fill_matrix<int>(a);
+        fill_matrix<int>(b);
+
+        matrix_tiled::Matrix<8, 8> a2{a.data()};
+        matrix_tiled::Matrix<8, 8> b2{b.data()};
+
+        std::cout << "====== A ======" << std::endl
+                  << a << std::endl
+                  << "====== B ======" << std::endl
+                  << b << std::endl
+                  << "==== A x B ====" << std::endl
+                  << a * b << std::endl
+                  << "==== A x B tiled ====" << std::endl
+                  << a2.multiplication_tiled(b2) << std::endl;
+
+        matrix_tiled::Matrix<8, 8> r2{(a * b).data()};
+        if ((a2 * b2) == r2)
+        {
+            std::cout << " A * B == A * B Blocked" << std::endl;
+        }
+    }
+
+    {
+        std::cout << "=================== Demo strassens ===================" << std::endl;
+        constexpr Matrix<4, 4> a{{{{1, 2, 0, 1}, {2, 1, 0, 2}, {0, 2, 1, 1}, {2, 1, 0, 2}}}};
+        constexpr Matrix<4, 4> b{{{{1, 1, 0, 2}, {2, 1, 1, 2}, {1, 2, 1, 0}, {0, 2, 1, 1}}}};
+
+        auto aa = strassens::array_to_vec_matrix(a);
+        auto bb = strassens::array_to_vec_matrix(b);
+
+        std::cout << "====== A ======" << std::endl
+                  << a << std::endl
+                  << "====== B ======" << std::endl
+                  << b << std::endl
+                  << "==== A x B strassens ====" << std::endl
+                  << strassens::strassens_mult(aa, bb) << std::endl;
+    }
+
+    {
+        std::cout << "=================== Demo ===================" << std::endl;
+        constexpr Matrix<4, 4> a{{{{1, 2, 0, 1}, {2, 1, 0, 2}, {0, 2, 1, 1}, {2, 1, 0, 2}}}};
+        constexpr Matrix<4, 4> b{{{{1, 1, 0, 2}, {2, 1, 1, 2}, {1, 2, 1, 0}, {0, 2, 1, 1}}}};
+
+        constexpr auto r = a * 2;
+        std::cout << "====== A ======" << std::endl
+                  << a << std::endl
+                  << "==== A * 2 ====" << std::endl
+                  << r << std::endl
+                  << "==== 2 * A ====" << std::endl
+                  << 2 * a << std::endl;
+    }
+
+    {
+        std::cout << "=================== Demo Thread Pool ===================" << std::endl;
+        Matrix<8, 8> a{};
+        Matrix<8, 8> b{};
+        fill_matrix<int>(a);
+        fill_matrix<int>(b);
+
+        static thread_pool::ThreadPoolInstance tpi;
+
+        auto r = a.multiplication_tn_pool(b);
+        std::cout << "====== A ======" << std::endl
+                  << a << std::endl
+                  << "====== B ======" << std::endl
+                  << b << std::endl
+                  << "==== A * B ====" << std::endl
                   << r << std::endl;
     }
 
