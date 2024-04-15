@@ -24,7 +24,7 @@ namespace matrix
         /* Public getters */
         static constexpr std::size_t rows() noexcept { return Rows; }
         static constexpr std::size_t columns() noexcept { return Columns; }
-        
+
         using Chunks = std::vector<std::pair<std::size_t, std::size_t>>;
         static const Chunks &get_chunks() { return chunks_; }
 
@@ -300,8 +300,8 @@ namespace matrix
         auto thread_count = static_cast<std::ptrdiff_t>(number_of_worker_threads());
         std::latch work_complete{thread_count};
 
-        auto& tp = thread_pool::ThreadPoolInstance::get_instance();
-        auto& workers = tp.workers_;
+        auto &tp = thread_pool::ThreadPoolInstance::get_instance();
+        auto &workers = tp.workers_;
 
         for (std::size_t i = 0; i < workers.size(); i++)
         {

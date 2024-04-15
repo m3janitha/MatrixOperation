@@ -20,6 +20,8 @@ namespace matrix_tiled
 
         constexpr MatrixImpl() = default;
         constexpr explicit MatrixImpl(const Data &data) : data_(data){};
+        constexpr explicit MatrixImpl(Data &&data) : data_(std::move(data)){};
+        /* conversion from 2D array */
         constexpr explicit MatrixImpl(const ArrayData &data);
 
         /* Public getters */
@@ -50,7 +52,6 @@ namespace matrix_tiled
         constexpr MatrixImpl<T, Rows, OtherColumns> multiplication_tiled(const MatrixImpl<T, Columns, OtherColumns> &other) const noexcept;
 
         constexpr void multiplication_tiled_aux(const MatrixImpl<T, Rows, Columns>::Block &a, const MatrixImpl<T, Rows, Columns>::Block &b, MatrixImpl<T, Rows, Columns>::Block &r) const noexcept;
-        
 
         auto operator<=>(const MatrixImpl &) const = default;
 
