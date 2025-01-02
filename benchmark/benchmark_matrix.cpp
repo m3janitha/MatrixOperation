@@ -174,7 +174,7 @@ static void matrix_multiplication_tn(Fixture &fixture, benchmark::State &state)
     }
 }
 
-BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_tn);
+// BenchmarkTemplateMatrixForAll(MatrixFixture, matrix_multiplication_tn);
 
 // static thread_pool::ThreadPoolInstance tpi;
 

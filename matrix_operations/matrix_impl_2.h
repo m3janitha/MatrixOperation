@@ -116,7 +116,7 @@ namespace matrix_tiled
                 {
                     sum += data_row_column(row, column) * other.data_row_column(column, other_col);
                 }
-                result.data_row_column(row, other_col) = sum;
+                result.data_row_column(row, other_col) = sum;z
             }
         }
 

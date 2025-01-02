@@ -252,13 +252,13 @@ namespace matrix
     {
         std::size_t number_of_chunks = number_of_threads;
         std::size_t chunk_size = array_length / number_of_chunks;
-        std::size_t remainder = array_length % number_of_threads;
+        std::size_t remainder = array_length % number_of_chunks;
 
         Chunks chunks{};
         std::size_t start_index{0};
         for (std::size_t i{0}; i < number_of_chunks; i++)
         {
-            auto chunk_length = chunk_size + (i < remainder ? 1 : 0);
+            auto chunk_length = chunk_size + (i < remainder ? 1 : 0); // first N(==remainder) will have 1 extra
             chunks.emplace_back(start_index, start_index + chunk_length);
             start_index += chunk_length;
         }
@@ -297,11 +297,11 @@ namespace matrix
     {
         MatrixImpl<T, Rows, OtherColumns> result{};
 
-        auto thread_count = static_cast<std::ptrdiff_t>(number_of_worker_threads());
-        std::latch work_complete{thread_count};
-
         auto &tp = thread_pool::ThreadPoolInstance::get_instance();
         auto &workers = tp.workers_;
+
+        auto thread_count = static_cast<std::ptrdiff_t>(workers.size());
+        std::latch work_complete{thread_count};
 
         for (std::size_t i = 0; i < workers.size(); i++)
         {
